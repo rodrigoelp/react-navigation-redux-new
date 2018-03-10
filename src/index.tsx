@@ -18,6 +18,9 @@ import {
 } from "redux";
 import { connect, Provider, Dispatch } from "react-redux";
 import Thunk from "redux-thunk";
+import { 
+  createReduxBoundAddListener,
+  createReactNavigationReduxMiddleware } from "react-navigation-redux-helpers";
 
 interface Page1Props {}
 interface Page1Actions {
@@ -121,6 +124,13 @@ interface RootNavProps {
   dispatch: any;
 }
 
+const rootNavMiddleware = createReactNavigationReduxMiddleware<AppState>(
+  "root",
+  state => state.rootNavigatorState,
+);
+
+const addListener = createReduxBoundAddListener("root");
+
 class RootNavigatorHost extends React.PureComponent<RootNavProps> {
   constructor(props: RootNavProps) {
     super(props);
@@ -130,21 +140,15 @@ class RootNavigatorHost extends React.PureComponent<RootNavProps> {
     const navigation = addNavigationHelpers({
       dispatch: this.props.dispatch,
       state: this.props.navState,
-      addListener: this.listener
+      addListener: addListener
     });
     return <RootNavigator navigation={navigation} />;
   }
-
-  listener = (eventName: string, callback: NavigationEventCallback): NavigationEventSubscription => {
-    return {
-      remove: () => { }
-    };
-  };
 }
 
 function mapStateToRootNavProps(state: any) {
   return {
-    navState: state.rootNavigator
+    navState: state.rootNavigatorState
   };
 }
 
@@ -188,8 +192,12 @@ function rootNavigatorReducer(
   return nextState || state;
 }
 
+interface AppState {
+  rootNavigatorState: any;
+}
+
 const reducers = combineReducers({
-  rootNavigator: rootNavigatorReducer
+  rootNavigatorState: rootNavigatorReducer
 });
 
 function goNextActionCreator() {
@@ -204,7 +212,7 @@ function goBackActionCreator() {
   };
 }
 
-const middleware = applyMiddleware(Thunk);
+const middleware = applyMiddleware(Thunk, rootNavMiddleware);
 
 const appStore = createStore(reducers, middleware);
 
